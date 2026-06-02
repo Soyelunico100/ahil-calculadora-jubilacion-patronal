@@ -23,6 +23,7 @@ app.py
 requirements.txt
 runtime.txt
 .streamlit/
+assets/
 data/
 jubilacion/
 tests/

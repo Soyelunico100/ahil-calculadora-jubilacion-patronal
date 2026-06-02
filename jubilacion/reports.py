@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from textwrap import wrap
 
 from fpdf import FPDF
 from openpyxl import Workbook
+from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -14,6 +16,7 @@ from .calculator import CalculationResult, ScenarioResult, money
 
 TITLE_FILL = PatternFill("solid", fgColor="1F4E78")
 HEADER_FILL = PatternFill("solid", fgColor="D9EAF7")
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo-ronquillo.png"
 
 
 def build_excel_report(result: CalculationResult) -> bytes:
@@ -22,10 +25,20 @@ def build_excel_report(result: CalculationResult) -> bytes:
     ws.title = "Informe"
     _setup_sheet(ws)
 
-    ws["A1"] = "Informe de calculo de Jubilacion Patronal"
-    ws["A1"].font = Font(bold=True, color="FFFFFF", size=14)
-    ws["A1"].fill = TITLE_FILL
-    ws.merge_cells("A1:F1")
+    if LOGO_PATH.exists():
+        try:
+            logo = ExcelImage(str(LOGO_PATH))
+            logo.width = 78
+            logo.height = 78
+            ws.add_image(logo, "A1")
+            ws.row_dimensions[1].height = 60
+        except Exception:
+            pass
+
+    ws["B1"] = "Informe de calculo de Jubilacion Patronal"
+    ws["B1"].font = Font(bold=True, color="FFFFFF", size=14)
+    ws["B1"].fill = TITLE_FILL
+    ws.merge_cells("B1:F1")
 
     data_rows = [
         ("Trabajador", result.entrada.trabajador),
@@ -73,6 +86,12 @@ def build_pdf_report(result: CalculationResult) -> bytes:
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
+    if LOGO_PATH.exists():
+        try:
+            pdf.image(str(LOGO_PATH), x=10, y=8, w=24)
+            pdf.set_xy(38, 10)
+        except Exception:
+            pdf.set_xy(10, 10)
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 10, _latin("Informe de calculo de Jubilacion Patronal"), ln=True)
     pdf.set_font("Arial", "", 10)
@@ -99,10 +118,10 @@ def build_pdf_report(result: CalculationResult) -> bytes:
         _pdf_pair(pdf, label, str(value))
 
     _pdf_section(pdf, "Resumen recomendado")
-    _pdf_scenario(pdf, result.recomendado)
+    _pdf_scenario(pdf, result.recomendado, result)
 
     _pdf_section(pdf, "Escenario comparativo")
-    _pdf_scenario(pdf, result.escenarios[1])
+    _pdf_scenario(pdf, result.escenarios[1], result)
 
     if result.advertencias:
         _pdf_section(pdf, "Advertencias")
@@ -237,16 +256,40 @@ def _pdf_pair(pdf: FPDF, label: str, value: str) -> None:
     pdf.multi_cell(0, 6, _latin(value))
 
 
-def _pdf_scenario(pdf: FPDF, scenario: ScenarioResult) -> None:
+def _pdf_scenario(pdf: FPDF, scenario: ScenarioResult, result: CalculationResult) -> None:
     for label, value in [
         ("Escenario", scenario.nombre),
+        ("A - Fondos de reserva causados", _usd(result.entrada.fondos_reserva_derecho)),
+        ("B - Promedio anual ultimos 5 anos", _usd(result.promedio_anual_ultimos_5)),
+        ("C - Tiempo de servicio", f"{result.tiempo_servicio} anos"),
+        ("D - Descuento aplicado", _usd(scenario.descuento_total)),
+        ("E - Coeficiente C1", str(scenario.coeficiente_c1)),
         ("Pension calculada", _usd(scenario.pension_mens_calculada)),
         ("Pension aplicada", _usd(scenario.pension_mensual)),
+        ("Limite mensual aplicado", scenario.limite_aplicado),
+        ("Coeficiente global C2", str(scenario.coeficiente_global.coeficiente)),
         ("Fondo global calculado", _usd(scenario.fondo_global_calculado)),
         ("Minimo fondo global", _usd(scenario.minimo_fondo_global)),
         ("Fondo global aplicado", _usd(scenario.fondo_global)),
     ]:
         _pdf_pair(pdf, label, value)
+    _pdf_multiline(
+        pdf,
+        "Formula pension mensual: ((A + (5% x B x C) - D) / E) / 12. "
+        f"Sustitucion: (({result.entrada.fondos_reserva_derecho} + "
+        f"(0.05 x {result.promedio_anual_ultimos_5} x {result.tiempo_servicio}) - "
+        f"{scenario.descuento_total}) / {scenario.coeficiente_c1}) / 12 = "
+        f"{money(scenario.pension_mens_calculada)} antes de limites.",
+    )
+    _pdf_multiline(
+        pdf,
+        "Formula fondo global: C2 x [(pension mensual aplicada x 12) + "
+        "decimotercera + decimocuarta]. "
+        f"Sustitucion: {scenario.coeficiente_global.coeficiente} x "
+        f"[({money(scenario.pension_mensual)} x 12) + "
+        f"{money(scenario.decimotercera)} + {money(scenario.decimocuarta)}] = "
+        f"{money(scenario.fondo_global_calculado)}.",
+    )
 
 
 def _pdf_multiline(pdf: FPDF, text: str) -> None:

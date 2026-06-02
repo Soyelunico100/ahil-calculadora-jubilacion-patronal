@@ -33,6 +33,7 @@ INSTALACION.md
 FUENTES.md
 instalar.bat
 ejecutar_app.bat
+assets\
 data\
 jubilacion\
 tests\
