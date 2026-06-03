@@ -2,6 +2,10 @@
 
 Aplicacion web local en Python para calcular pension mensual, fondo global y generar informe Excel/PDF.
 
+Incluye control de acceso por codigos alfanumericos de 8 caracteres. Cada codigo se asigna a un trabajador y permite hasta 10 descargas de informes.
+
+El ingreso por resumen anual arma automaticamente los cinco periodos de 12 meses segun la fecha de terminacion laboral. Ejemplo: si la salida es junio de 2024, los campos se muestran como periodos moviles hasta 2024-06, no como anos calendario fijos.
+
 Nombre recomendado para publicar en AHIL Legal Tech:
 
 ```text
@@ -31,6 +35,8 @@ streamlit run app.py
 
 Para instalar en otra maquina, ver [INSTALACION.md](INSTALACION.md).
 
+Para administrar codigos, ver [CONTROL_CODIGOS.md](CONTROL_CODIGOS.md).
+
 ## Verificar
 
 ```powershell
@@ -40,8 +46,9 @@ python -m unittest discover -s tests -v
 ## Fuentes principales
 
 - Excel original: `Calculo de Jubilacion Patronal y Jubilacion por Vejez.xlsx`.
+- Codigo del Trabajo: articulos 216, 217 y 218 sobre jubilacion patronal.
 - MDT-2016-0099: formula de calculo mensual y fondo global.
 - Resolucion 07-2021: limite maximo de pension mensual.
-- Resolucion 16-2025: tratamiento de fondos de reserva.
+- Resolucion 16-2025: tratamiento de fondos de reserva; escenario recomendado descuenta solo fondos de reserva pagados/depositados y no aportes patronales.
 - Resolucion 04-2026: criterio actual para aplicar acuerdos ministeriales vigentes al fondo global.
-- Tablas de coeficientes globales 2022-2026 del Ministerio del Trabajo.
+- Tablas de coeficientes globales 2016-2026 del Ministerio del Trabajo. La tabla PDF 2021 cargada contiene edades 39-79; para edades mayores en ese anio se puede ingresar C2 manual.

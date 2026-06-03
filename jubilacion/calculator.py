@@ -39,6 +39,7 @@ class CalculationInput:
     aportes_patronales_pagados: Decimal
     doble_jubilacion: bool = False
     despido_intempestivo: bool = False
+    decimotercera_remuneracion: Decimal | None = None
     remuneracion_sectorial: Decimal = Decimal("0")
     decimocuarta_remuneracion: Decimal = Decimal("0")
     anio_coeficiente_global: int | None = None
@@ -161,12 +162,16 @@ def calculate_jubilacion(
     scenarios = [
         (
             "Solo fondos de reserva",
-            "Criterio recomendado: descuenta fondos de reserva pagados o depositados.",
+            "Criterio recomendado por Resolucion CNJ 16-2025: el empleador rebaja "
+            "solo fondos de reserva pagados, entregados o depositados; no rebaja "
+            "aportes patronales en aplicacion del principio de favorabilidad.",
             D(entrada.fondos_reserva_pagados),
         ),
         (
             "Fondos de reserva + aportes",
-            "Escenario comparativo: replica la formula MDT/Excel que descuenta tambien aportes patronales.",
+            "Escenario comparativo historico/Excel: descuenta fondos de reserva y "
+            "aportes patronales. Se muestra solo para contraste frente al criterio "
+            "jurisprudencial obligatorio actual.",
             D(entrada.fondos_reserva_pagados) + D(entrada.aportes_patronales_pagados),
         ),
     ]
@@ -181,6 +186,7 @@ def calculate_jubilacion(
             minimum_month=minimum_month,
             maximum_month=maximum_month,
             decimocuarta=D(entrada.decimocuarta_remuneracion),
+            decimotercera_manual=entrada.decimotercera_remuneracion,
             remuneracion_sectorial=D(entrada.remuneracion_sectorial),
             service=service,
         )
@@ -210,6 +216,7 @@ def _build_scenario(
     coeficiente_global: GlobalCoefficient,
     minimum_month: Decimal,
     maximum_month: Decimal,
+    decimotercera_manual: Decimal | None,
     decimocuarta: Decimal,
     remuneracion_sectorial: Decimal,
     service: Decimal,
@@ -217,7 +224,7 @@ def _build_scenario(
     haber_ajustado = haber_individual - descuento_total
     pension_calc = haber_ajustado / coeficiente_c1 / TWEL
     pension_limited, limit_name = apply_month_limits(pension_calc, minimum_month, maximum_month)
-    decimo13 = pension_limited
+    decimo13 = D(decimotercera_manual) if decimotercera_manual is not None else pension_limited
     fondo_global_calculado = coeficiente_global.coeficiente * (
         (pension_limited * TWEL) + decimo13 + decimocuarta
     )

@@ -30,7 +30,10 @@ tests/
 README.md
 INSTALACION.md
 FUENTES.md
+CONTROL_CODIGOS.md
 ```
+
+No subir la carpeta `private/`; contiene codigos en texto claro y control local de uso.
 
 3. Entrar a Streamlit Community Cloud:
 

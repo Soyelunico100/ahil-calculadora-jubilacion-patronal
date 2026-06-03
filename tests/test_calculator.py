@@ -53,6 +53,14 @@ class CalculatorTests(unittest.TestCase):
         coefficient = store.get_global(anio=2026, edad=40, sexo="Mujer")
         self.assertEqual(coefficient.coeficiente, Decimal("14.3056897074653"))
 
+    def test_coefficient_store_has_pdf_tables_2016_to_2026(self) -> None:
+        store = CoefficientStore()
+        self.assertEqual(store.available_global_years, list(range(2016, 2027)))
+        coefficient_2016 = store.get_global(anio=2016, edad=39, sexo="Hombre")
+        coefficient_2021 = store.get_global(anio=2021, edad=79, sexo="Mujer")
+        self.assertEqual(coefficient_2016.coeficiente, Decimal("15.1257705934602"))
+        self.assertEqual(coefficient_2021.coeficiente, Decimal("5.3930926574543"))
+
     def test_reports_are_generated(self) -> None:
         result = calculate_jubilacion(excel_case())
         xlsx = build_excel_report(result)

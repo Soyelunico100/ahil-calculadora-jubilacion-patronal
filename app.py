@@ -9,12 +9,16 @@ import streamlit as st
 from PIL import Image
 
 from jubilacion import CalculationInput, CoefficientStore, calculate_jubilacion
+from jubilacion.access_control import assign_code_to_worker, register_report_download, validate_access
 from jubilacion.calculator import money
+from jubilacion.legal_basis import LEGAL_BASIS
 from jubilacion.reports import build_excel_report, build_pdf_report
 
 
 LOGO_PATH = Path(__file__).resolve().parent / "assets" / "logo-ronquillo.png"
 LOGO_IMAGE = Image.open(LOGO_PATH) if LOGO_PATH.exists() else None
+FORMULA_PENSION_PATH = Path(__file__).resolve().parent / "assets" / "formula_pension_mensual.png"
+FORMULA_GLOBAL_PATH = Path(__file__).resolve().parent / "assets" / "formula_fondo_global.png"
 
 st.set_page_config(
     page_title="AHIL Legal Tech - Jubilacion Patronal",
@@ -32,6 +36,35 @@ with header_text:
         "Herramienta local de consultoria juridica, tributaria y laboral para estimar "
         "pension mensual, fondo global y generar informes Excel/PDF."
     )
+st.info(
+    "Criterio aplicado: la Resolucion No. 16-2025 de la Corte Nacional de Justicia "
+    "declara precedente obligatorio sobre fondos de reserva en jubilacion patronal. "
+    "Por favorabilidad, el escenario recomendado descuenta solo fondos de reserva "
+    "pagados, entregados o depositados; los aportes patronales se muestran solo en "
+    "un escenario comparativo."
+)
+with st.expander("Base legal aplicada en la calculadora"):
+    for title, detail in LEGAL_BASIS:
+        st.markdown(f"**{title}.** {detail}")
+
+with st.expander("Formulas oficiales MDT-2016-0099"):
+    formula_left, formula_right = st.columns(2)
+    with formula_left:
+        st.markdown("**Pension mensual**")
+        if FORMULA_PENSION_PATH.exists():
+            st.image(str(FORMULA_PENSION_PATH), width=330)
+        st.caption("A = fondos de reserva; B = promedio anual ultimos 5 anos; C = tiempo de servicio; D = descuento; E = coeficiente C1.")
+    with formula_right:
+        st.markdown("**Fondo global**")
+        if FORMULA_GLOBAL_PATH.exists():
+            st.image(str(FORMULA_GLOBAL_PATH), width=300)
+        st.caption("A = coeficiente global C2; B = pension mensual; C = decimotercera; D = decimocuarta.")
+
+st.warning(
+    "Acceso restringido. Para solicitar un codigo de uso, comuniquese con Pablo "
+    "Ronquillo - AHIL Legal Tech. Pagina: "
+    "https://ahil-legal-tech-6yuizq3.gamma.site/#card-atqpfiqapdfgy80"
+)
 
 store = CoefficientStore()
 
@@ -57,6 +90,14 @@ def split_annual_totals(month_values: list[Decimal]) -> list[Decimal]:
     ]
 
 
+def annual_period_labels(end: date, periods: int = 5) -> list[str]:
+    labels = month_labels(end, periods * 12)
+    return [
+        f"{labels[start]} a {labels[start + 11]}"
+        for start in range(0, periods * 12, 12)
+    ]
+
+
 def usd(value: Decimal) -> str:
     return f"USD {money(value):,.2f}"
 
@@ -65,7 +106,29 @@ def note(text: str) -> None:
     st.caption(f"Observacion: {text}")
 
 
+st.subheader("Fecha base del calculo")
+fecha_salida = st.date_input(
+    "Fecha de salida / terminacion de la relacion laboral",
+    value=date.today(),
+    min_value=date(1900, 1, 1),
+    max_value=date(2100, 12, 31),
+    key="fecha_salida_global",
+)
+note(
+    "Cambie primero esta fecha. Con ella se actualizan los cinco periodos de "
+    "remuneracion, el anio sugerido de coeficiente global C2 y el tiempo de servicio."
+)
+
+
 with st.form("calculo"):
+    st.subheader("Codigo de acceso")
+    access_code = st.text_input("Codigo alfanumerico de 8 caracteres o clave master", max_chars=32, type="password")
+    note(
+        "Ingrese el codigo entregado por AHIL Legal Tech. Cada codigo se asigna al "
+        "primer trabajador calculado y permite descargar maximo 10 informes para ese trabajador. "
+        "La clave master del administrador permite acceso ilimitado."
+    )
+
     left, right = st.columns(2)
     with left:
         trabajador = st.text_input("Nombre del trabajador")
@@ -90,13 +153,8 @@ with st.form("calculo"):
             max_value=date.today(),
         )
         note("Ingrese la fecha real de inicio de la relacion laboral.")
-        fecha_salida = st.date_input(
-            "Fecha de salida",
-            value=date.today(),
-            min_value=date(1900, 1, 1),
-            max_value=date(2100, 12, 31),
-        )
-        note("Ingrese la fecha de terminacion laboral; sirve para tiempo de servicio y anio C2.")
+        st.markdown(f"**Fecha de salida seleccionada:** {fecha_salida:%d/%m/%Y}")
+        note("Esta fecha se selecciona arriba para que los periodos se actualicen antes de calcular.")
     with right:
         empleador = st.text_input("Empleador")
         note("Ingrese razon social o nombre del empleador que constara en el informe.")
@@ -116,6 +174,13 @@ with st.form("calculo"):
             "Aportes patronales pagados/depositados", min_value=0.0, step=100.0
         )
         note("Coloque la suma de aportes patronales si desea ver el escenario comparativo del MDT/Excel.")
+        decimotercera = st.number_input(
+            "Decimotercera remuneracion para fondo global",
+            min_value=0.0,
+            value=0.0,
+            step=10.0,
+        )
+        note("Si deja este valor en 0, la app usa automaticamente una pension mensual aplicada como decimotercera.")
         decimocuarta = st.number_input(
             "Decimocuarta remuneracion para fondo global",
             min_value=0.0,
@@ -138,24 +203,26 @@ with st.form("calculo"):
     remuneraciones_12: list[Decimal] = []
     if modo == "Resumen anual":
         cols = st.columns(5)
-        years = list(range(fecha_salida.year - 4, fecha_salida.year + 1))
+        periodos = annual_period_labels(fecha_salida)
+        period_key = f"{fecha_salida.year}_{fecha_salida.month:02d}"
         remuneraciones_50 = []
         for idx, col in enumerate(cols):
             with col:
                 value = st.number_input(
-                    f"Total anual {years[idx]}",
+                    f"Periodo {idx + 1}: {periodos[idx]}",
                     min_value=0.0,
                     value=0.0,
                     step=100.0,
-                    key=f"annual_{idx}",
+                    key=f"annual_{period_key}_{idx}",
                 )
-                note("Ingrese el total ganado en ese anio segun roles de pago o certificado laboral.")
+                note("Ingrese el total ganado en este periodo de 12 meses segun roles de pago o certificado laboral.")
                 remuneraciones_50.append(as_decimal(value))
         total_ultimo = st.number_input(
-            "Total remuneracion ultimo anio",
+            f"Total remuneracion ultimo anio ({periodos[-1]})",
             min_value=0.0,
             value=float(remuneraciones_50[-1]) if remuneraciones_50 else 0.0,
             step=100.0,
+            key=f"last_year_{period_key}",
         )
         note("Ingrese la suma de remuneraciones de los ultimos 12 meses; sirve para el limite maximo mensual.")
         remuneraciones_12 = [as_decimal(total_ultimo) / Decimal("12")] * 12
@@ -207,6 +274,7 @@ with st.form("calculo"):
             step=1,
         )
         note("Seleccione el anio de la tabla C2; normalmente coincide con el anio de salida.")
+        note("Tablas cargadas: 2016 a 2026. La tabla PDF 2021 disponible llega hasta edad 79; para edad mayor use C2 manual.")
         manual_c2_enabled = st.checkbox("Ingresar C2 manual")
         note("Active si el anio de salida no esta cargado o si tiene una tabla oficial mas reciente.")
         manual_c2 = (
@@ -230,6 +298,10 @@ with st.form("calculo"):
 
 if submitted:
     try:
+        access_status = validate_access(access_code, identificacion, trabajador)
+        if not access_status.allowed:
+            raise ValueError(access_status.message)
+
         entrada = CalculationInput(
             trabajador=trabajador,
             identificacion=identificacion,
@@ -246,6 +318,7 @@ if submitted:
             aportes_patronales_pagados=as_decimal(aportes_patronales),
             doble_jubilacion=doble_jubilacion,
             despido_intempestivo=despido_intempestivo,
+            decimotercera_remuneracion=as_decimal(decimotercera) if as_decimal(decimotercera) > 0 else None,
             remuneracion_sectorial=as_decimal(remuneracion_sectorial),
             decimocuarta_remuneracion=as_decimal(decimocuarta),
             anio_coeficiente_global=int(anio_c2),
@@ -254,6 +327,9 @@ if submitted:
             tiempo_servicio_manual=as_decimal(service_manual) if use_manual_service else None,
             notas=notas,
         )
+        access_status = assign_code_to_worker(access_code, identificacion, trabajador)
+        if not access_status.allowed:
+            raise ValueError(access_status.message)
         result = calculate_jubilacion(entrada, store)
     except Exception as exc:
         st.error(str(exc))
@@ -273,9 +349,12 @@ if submitted:
             rows.append(
                 {
                     "Escenario": scenario.nombre,
+                    "Criterio aplicado": scenario.descripcion,
                     "Pension calculada": usd(scenario.pension_mens_calculada),
                     "Pension aplicada": usd(scenario.pension_mensual),
                     "Limite": scenario.limite_aplicado,
+                    "Decimotercera": usd(scenario.decimotercera),
+                    "Decimocuarta": usd(scenario.decimocuarta),
                     "Fondo global calculado": usd(scenario.fondo_global_calculado),
                     "Minimo fondo global": usd(scenario.minimo_fondo_global),
                     "Fondo global aplicado": usd(scenario.fondo_global),
@@ -284,16 +363,129 @@ if submitted:
                 }
             )
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        if access_status.is_master:
+            st.success(f"{access_status.message} Puede generar informes sin limite.")
+        else:
+            st.success(
+                f"{access_status.message} Informes usados: {access_status.reports_used}. "
+                f"Informes restantes para {access_status.worker_label}: {access_status.reports_remaining}."
+            )
+        st.info(
+            "Base jurisprudencial: Resolucion CNJ No. 16-2025. El fondo de reserva "
+            "integra el haber individual y la rebaja admisible en el escenario "
+            "recomendado corresponde a fondos de reserva ya pagados/depositados. "
+            "El escenario con aportes patronales se conserva solo como referencia "
+            "comparativa frente al Excel/criterios anteriores."
+        )
 
+        downloads_disabled = (not access_status.is_master) and access_status.reports_remaining <= 0
         st.download_button(
             "Descargar Excel",
             data=build_excel_report(result),
             file_name="informe_jubilacion_patronal.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            disabled=downloads_disabled,
+            on_click=register_report_download,
+            args=(access_code, identificacion, trabajador, "excel"),
         )
         st.download_button(
             "Descargar calculo en PDF",
             data=build_pdf_report(result),
             file_name="informe_jubilacion_patronal.pdf",
             mime="application/pdf",
+            disabled=downloads_disabled,
+            on_click=register_report_download,
+            args=(access_code, identificacion, trabajador, "pdf"),
         )
+
+
+st.markdown(
+    """
+    <style>
+      .ahil-whatsapp-widget {
+        position: fixed;
+        right: 24px;
+        bottom: 26px;
+        z-index: 999999;
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        font-family: Arial, sans-serif;
+      }
+      .ahil-whatsapp-card {
+        width: 245px;
+        padding: 12px 14px;
+        border: 1px solid #c8d2df;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #12233d;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.20);
+        font-size: 13px;
+        line-height: 1.28;
+      }
+      .ahil-whatsapp-card strong {
+        display: block;
+        color: #0f2748;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      .ahil-whatsapp-card span {
+        display: block;
+        color: #536471;
+        font-size: 12px;
+        margin-top: 5px;
+      }
+      .ahil-whatsapp-button {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: #25d366;
+        color: #ffffff !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none !important;
+        font-weight: 800;
+        font-size: 16px;
+        letter-spacing: 0;
+        box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
+        border: 2px solid #ffffff;
+      }
+      .ahil-whatsapp-button:hover {
+        background: #1ebe5d;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+      }
+      @media (max-width: 760px) {
+        .ahil-whatsapp-widget {
+          right: 16px;
+          bottom: 18px;
+        }
+        .ahil-whatsapp-card {
+          display: none;
+        }
+      }
+    </style>
+    <div class="ahil-whatsapp-widget">
+      <div class="ahil-whatsapp-card">
+        <strong>Atencion directa AHIL Legal Tech</strong>
+        Si tiene dudas sobre el calculo, puede escribirme por WhatsApp.
+        <span>Abg. Mgtr. Ing. Pablo Ronquillo</span>
+      </div>
+      <a
+        class="ahil-whatsapp-button"
+        href="https://wa.me/593986658162?text=Hola%20Abg.%20Mgtr.%20Ing.%20Pablo%20Ronquillo%2C%20tengo%20una%20consulta%20sobre%20la%20calculadora%20de%20Jubilacion%20Patronal."
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Chatear por WhatsApp"
+        aria-label="Chatear por WhatsApp con Pablo Ronquillo"
+      >WA</a>
+    </div>
+    <div style="margin-top:32px;border-top:1px solid #d0d7de;padding-top:12px;
+    color:#536471;font-size:13px;text-align:center;">
+      <strong>Abg. Mgtr. Ing. Pablo Ronquillo</strong> | AHIL Legal Tech |
+      Celular: 0986658162 | Quito - Ecuador
+    </div>
+    """,
+    unsafe_allow_html=True,
+)

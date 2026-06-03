@@ -31,6 +31,7 @@ app.py
 requirements.txt
 INSTALACION.md
 FUENTES.md
+CONTROL_CODIGOS.md
 instalar.bat
 ejecutar_app.bat
 assets\
@@ -123,12 +124,13 @@ Abrir esa direccion en el navegador si no se abre automaticamente.
 
 ## 7. Uso basico
 
-1. Ingresar datos del trabajador, empleador, fechas, sexo y causal.
-2. Ingresar fondos de reserva causados, fondos pagados/depositados y aportes patronales.
-3. Elegir ingreso resumido anual o detalle mensual.
-4. Revisar parametros avanzados si se necesita ingresar edad, tiempo de servicio o C2 manual.
-5. Presionar **Calcular**.
-6. Descargar el informe en Excel o PDF.
+1. Seleccionar primero la fecha de salida / terminacion laboral para que se ajusten los periodos y el anio C2 sugerido.
+2. Ingresar datos del trabajador, empleador, fechas, sexo y causal.
+3. Ingresar fondos de reserva causados, fondos pagados/depositados y aportes patronales.
+4. Elegir ingreso resumido anual o detalle mensual. En resumen anual, los cinco campos corresponden a periodos moviles de 12 meses contados hasta la fecha de salida.
+5. Revisar parametros avanzados si se necesita ingresar edad, tiempo de servicio o C2 manual.
+6. Presionar **Calcular**.
+7. Descargar el informe en Excel o PDF.
 
 La aplicacion muestra dos escenarios:
 
@@ -138,6 +140,7 @@ La aplicacion muestra dos escenarios:
 ## 8. Notas importantes
 
 - El calculo es referencial y debe revisarse contra la normativa vigente y documentacion laboral del caso.
-- Los coeficientes C2 incluidos cubren 2020, 2022, 2023, 2024, 2025 y 2026.
+- Los coeficientes C2 incluidos cubren 2016 a 2026.
+- La tabla PDF 2021 cargada contiene edades 39-79; para edades mayores en ese anio usar el campo avanzado **Ingresar C2 manual**.
 - Si el ano de salida no tiene tabla cargada, usar el campo avanzado **Ingresar C2 manual**.
 - Para actualizar tablas futuras, reemplazar o ampliar `data\coeficientes_globales.csv` respetando las columnas existentes.
