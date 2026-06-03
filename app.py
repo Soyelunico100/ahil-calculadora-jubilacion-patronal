@@ -26,6 +26,51 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown(
+    """
+    <style>
+      :root {
+        --ahil-blue: #0f4c81;
+        --ahil-celeste: #dff4ff;
+        --ahil-ink: #10233f;
+      }
+      html, body, [data-testid="stAppViewContainer"] {
+        background:
+          radial-gradient(circle at 12% 8%, rgba(77, 171, 247, 0.24), transparent 32%),
+          radial-gradient(circle at 92% 18%, rgba(15, 76, 129, 0.14), transparent 30%),
+          linear-gradient(135deg, #f8fcff 0%, #eef8ff 42%, #ffffff 78%);
+      }
+      [data-testid="stHeader"] {
+        background: rgba(248, 252, 255, 0.78);
+        backdrop-filter: blur(8px);
+      }
+      .main .block-container {
+        padding-top: 2.1rem;
+        padding-bottom: 4.8rem;
+      }
+      div[data-testid="stForm"] {
+        border: 1px solid rgba(15, 76, 129, 0.16);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 18px 44px rgba(16, 35, 63, 0.08);
+      }
+      div[data-testid="stMetric"] {
+        border: 1px solid rgba(15, 76, 129, 0.12);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #eff9ff 100%);
+      }
+      h1, h2, h3 {
+        color: var(--ahil-ink);
+      }
+      .stButton button, .stDownloadButton button {
+        border-radius: 10px;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 header_logo, header_text = st.columns([1, 6])
 with header_logo:
     if LOGO_PATH.exists():
@@ -404,22 +449,22 @@ st.markdown(
     <style>
       .ahil-whatsapp-widget {
         position: fixed;
-        right: 24px;
-        bottom: 26px;
+        right: 22px;
+        bottom: 28px;
         z-index: 999999;
         display: flex;
         align-items: flex-end;
-        gap: 12px;
+        gap: 10px;
         font-family: Arial, sans-serif;
       }
       .ahil-whatsapp-card {
-        width: 245px;
-        padding: 12px 14px;
-        border: 1px solid #c8d2df;
-        border-radius: 12px;
-        background: #ffffff;
+        width: 238px;
+        padding: 12px 14px 11px;
+        border: 1px solid rgba(15, 76, 129, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
         color: #12233d;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.20);
+        box-shadow: 0 14px 34px rgba(15, 76, 129, 0.18);
         font-size: 13px;
         line-height: 1.28;
       }
@@ -431,30 +476,41 @@ st.markdown(
       }
       .ahil-whatsapp-card span {
         display: block;
-        color: #536471;
+      }
+      .ahil-contact-name {
+        color: #0f2748;
+        font-size: 12.5px;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+      .ahil-contact-title {
+        color: #4e6c8b;
         font-size: 12px;
-        margin-top: 5px;
+        margin-top: 1px;
       }
       .ahil-whatsapp-button {
-        width: 58px;
-        height: 58px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
-        background: #25d366;
+        background: linear-gradient(145deg, #36e275 0%, #0ebd52 100%);
         color: #ffffff !important;
         display: flex;
         align-items: center;
         justify-content: center;
         text-decoration: none !important;
-        font-weight: 800;
-        font-size: 16px;
-        letter-spacing: 0;
-        box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
-        border: 2px solid #ffffff;
+        box-shadow: 0 14px 30px rgba(37, 211, 102, 0.38);
+        border: 3px solid #ffffff;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
       }
       .ahil-whatsapp-button:hover {
-        background: #1ebe5d;
-        color: #ffffff !important;
+        background: linear-gradient(145deg, #42ec82 0%, #0fac4b 100%);
         transform: translateY(-1px);
+        box-shadow: 0 16px 34px rgba(37, 211, 102, 0.44);
+      }
+      .ahil-whatsapp-icon {
+        width: 36px;
+        height: 36px;
+        display: block;
       }
       @media (max-width: 760px) {
         .ahil-whatsapp-widget {
@@ -470,21 +526,26 @@ st.markdown(
       <div class="ahil-whatsapp-card">
         <strong>Atencion directa AHIL Legal Tech</strong>
         Si tiene dudas sobre el calculo, puede escribirme por WhatsApp.
-        <span>Abg. Mgtr. Ing. Pablo Ronquillo</span>
+        <span class="ahil-contact-name">Ing. Pablo Ronquillo</span>
+        <span class="ahil-contact-title">Abg. Msc.</span>
       </div>
       <a
         class="ahil-whatsapp-button"
-        href="https://wa.me/593986658162?text=Hola%20Abg.%20Mgtr.%20Ing.%20Pablo%20Ronquillo%2C%20tengo%20una%20consulta%20sobre%20la%20calculadora%20de%20Jubilacion%20Patronal."
+        href="https://wa.me/593986658162?text=Hola%20Ing.%20Pablo%20Ronquillo%2C%20tengo%20una%20consulta%20sobre%20la%20calculadora%20de%20Jubilacion%20Patronal."
         target="_blank"
         rel="noopener noreferrer"
         title="Chatear por WhatsApp"
         aria-label="Chatear por WhatsApp con Pablo Ronquillo"
-      >WA</a>
+      >
+        <svg class="ahil-whatsapp-icon" viewBox="0 0 32 32" aria-hidden="true">
+          <path fill="#ffffff" d="M16.04 3.2C9.07 3.2 3.4 8.83 3.4 15.75c0 2.25.6 4.44 1.73 6.35L3.2 29l7.07-1.86a12.7 12.7 0 0 0 6.03 1.53h.01c6.97 0 12.64-5.63 12.64-12.55 0-3.35-1.31-6.5-3.7-8.87A12.6 12.6 0 0 0 16.04 3.2Zm.01 23.34h-.01a10.5 10.5 0 0 1-5.34-1.46l-.38-.23-4.19 1.1 1.12-4.06-.25-.41a10.3 10.3 0 0 1-1.58-5.48c0-5.75 4.72-10.42 10.53-10.42 2.81 0 5.45 1.09 7.44 3.05a10.33 10.33 0 0 1 3.09 7.37c0 5.74-4.72 10.42-10.53 10.42Zm5.78-7.8c-.31-.16-1.85-.91-2.14-1.01-.29-.11-.5-.16-.71.16-.21.31-.82 1.01-1 .1-.18.21-.37.23-.68.08-.31-.16-1.31-.48-2.5-1.53a9.3 9.3 0 0 1-1.73-2.15c-.18-.31-.02-.48.14-.64.14-.14.31-.37.47-.55.16-.18.21-.31.31-.52.1-.21.05-.39-.03-.55-.08-.16-.71-1.7-.97-2.33-.26-.62-.52-.53-.71-.54h-.6c-.21 0-.55.08-.84.39-.29.31-1.1 1.07-1.1 2.61 0 1.54 1.13 3.03 1.29 3.24.16.21 2.23 3.38 5.41 4.74.76.32 1.35.51 1.81.66.76.24 1.45.21 1.99.13.61-.09 1.85-.75 2.11-1.48.26-.73.26-1.36.18-1.48-.08-.13-.29-.21-.61-.37Z"/>
+        </svg>
+      </a>
     </div>
     <div style="margin-top:32px;border-top:1px solid #d0d7de;padding-top:12px;
     color:#536471;font-size:13px;text-align:center;">
-      <strong>Abg. Mgtr. Ing. Pablo Ronquillo</strong> | AHIL Legal Tech |
-      Celular: 0986658162 | Quito - Ecuador
+      <strong>Ing. Pablo Ronquillo</strong><br>
+      Abg. Msc. | AHIL Legal Tech | Celular: 0986658162 | Quito - Ecuador
     </div>
     """,
     unsafe_allow_html=True,

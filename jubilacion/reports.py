@@ -19,7 +19,8 @@ HEADER_FILL = PatternFill("solid", fgColor="D9EAF7")
 LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo-ronquillo.png"
 FORMULA_PENSION_PATH = Path(__file__).resolve().parent.parent / "assets" / "formula_pension_mensual.png"
 FORMULA_GLOBAL_PATH = Path(__file__).resolve().parent.parent / "assets" / "formula_fondo_global.png"
-FOOTER_NAME = "Abg. Mgtr. Ing. Pablo Ronquillo"
+FOOTER_NAME = "Ing. Pablo Ronquillo"
+FOOTER_TITLE = "Abg. Msc."
 FOOTER_BRAND = "AHIL Legal Tech"
 FOOTER_PHONE = "0986658162"
 FOOTER_PLACE = "Quito - Ecuador"
@@ -27,17 +28,15 @@ FOOTER_PLACE = "Quito - Ecuador"
 
 class ReportPDF(FPDF):
     def footer(self) -> None:
-        self.set_y(-16)
+        self.set_y(-18)
         self.set_draw_color(31, 78, 121)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
         self.ln(2)
         self.set_font("Arial", "I", 7.5)
         self.set_text_color(80, 80, 80)
-        footer_text = (
-            f"{FOOTER_NAME} | {FOOTER_BRAND} | Celular: {FOOTER_PHONE} | "
-            f"{FOOTER_PLACE}"
-        )
-        self.cell(0, 4, _latin(footer_text), ln=True, align="C")
+        self.cell(0, 4, _latin(f"{FOOTER_NAME} | {FOOTER_TITLE} | {FOOTER_BRAND}"), ln=True, align="C")
+        self.set_font("Arial", "", 7.2)
+        self.cell(0, 4, _latin(f"Celular: {FOOTER_PHONE} | {FOOTER_PLACE}"), ln=True, align="C")
         self.set_font("Arial", "", 7)
         self.cell(0, 4, _latin(f"Pagina {self.page_no()}"), align="C")
         self.set_text_color(0, 0, 0)
@@ -112,7 +111,7 @@ def build_excel_report(result: CalculationResult) -> bytes:
 
 def build_pdf_report(result: CalculationResult) -> bytes:
     pdf = ReportPDF()
-    pdf.set_auto_page_break(auto=True, margin=22)
+    pdf.set_auto_page_break(auto=True, margin=24)
     pdf.add_page()
     _pdf_header(pdf)
 
