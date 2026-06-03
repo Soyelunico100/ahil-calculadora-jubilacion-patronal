@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -347,31 +348,36 @@ if submitted:
         if not access_status.allowed:
             raise ValueError(access_status.message)
 
-        entrada = CalculationInput(
-            trabajador=trabajador,
-            identificacion=identificacion,
-            empleador=empleador,
-            cargo=cargo,
-            fecha_nacimiento=fecha_nacimiento,
-            fecha_ingreso=fecha_ingreso,
-            fecha_salida=fecha_salida,
-            sexo=sexo,
-            remuneraciones_ultimos_5=remuneraciones_50,
-            remuneraciones_ultimo_12=remuneraciones_12,
-            fondos_reserva_derecho=as_decimal(fondos_reserva_derecho),
-            fondos_reserva_pagados=as_decimal(fondos_reserva_pagados),
-            aportes_patronales_pagados=as_decimal(aportes_patronales),
-            doble_jubilacion=doble_jubilacion,
-            despido_intempestivo=despido_intempestivo,
-            decimotercera_remuneracion=as_decimal(decimotercera) if as_decimal(decimotercera) > 0 else None,
-            remuneracion_sectorial=as_decimal(remuneracion_sectorial),
-            decimocuarta_remuneracion=as_decimal(decimocuarta),
-            anio_coeficiente_global=int(anio_c2),
-            coeficiente_global_manual=as_decimal(manual_c2) if manual_c2_enabled else None,
-            edad_renta_manual=int(edad_manual) if use_manual_age else None,
-            tiempo_servicio_manual=as_decimal(service_manual) if use_manual_service else None,
-            notas=notas,
-        )
+        input_data = {
+            "trabajador": trabajador,
+            "identificacion": identificacion,
+            "empleador": empleador,
+            "cargo": cargo,
+            "fecha_nacimiento": fecha_nacimiento,
+            "fecha_ingreso": fecha_ingreso,
+            "fecha_salida": fecha_salida,
+            "sexo": sexo,
+            "remuneraciones_ultimos_5": remuneraciones_50,
+            "remuneraciones_ultimo_12": remuneraciones_12,
+            "fondos_reserva_derecho": as_decimal(fondos_reserva_derecho),
+            "fondos_reserva_pagados": as_decimal(fondos_reserva_pagados),
+            "aportes_patronales_pagados": as_decimal(aportes_patronales),
+            "doble_jubilacion": doble_jubilacion,
+            "despido_intempestivo": despido_intempestivo,
+            "remuneracion_sectorial": as_decimal(remuneracion_sectorial),
+            "decimocuarta_remuneracion": as_decimal(decimocuarta),
+            "anio_coeficiente_global": int(anio_c2),
+            "coeficiente_global_manual": as_decimal(manual_c2) if manual_c2_enabled else None,
+            "edad_renta_manual": int(edad_manual) if use_manual_age else None,
+            "tiempo_servicio_manual": as_decimal(service_manual) if use_manual_service else None,
+            "notas": notas,
+        }
+        available_fields = {field.name for field in fields(CalculationInput)}
+        if "decimotercera_remuneracion" in available_fields:
+            input_data["decimotercera_remuneracion"] = (
+                as_decimal(decimotercera) if as_decimal(decimotercera) > 0 else None
+            )
+        entrada = CalculationInput(**input_data)
         access_status = assign_code_to_worker(access_code, identificacion, trabajador)
         if not access_status.allowed:
             raise ValueError(access_status.message)
